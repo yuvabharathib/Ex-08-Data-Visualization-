@@ -1,7 +1,6 @@
-# Ex-07-Data-Visualization-
-
+# Ex-08-Data-Visualization-
 # AIM
-To Perform Data Visualization on the given dataset and save the data to a file. 
+To Perform Data Visualization on the given dataset and save the data to a file.
 
 # Explanation
 Data visualization is the graphical representation of information and data. By using visual elements like charts, graphs, and maps, data visualization tools provide an accessible way to see and understand trends, outliers, and patterns in data.
@@ -9,238 +8,181 @@ Data visualization is the graphical representation of information and data. By u
 # ALGORITHM
 ## STEP 1
 Read the given Data
+
 ## STEP 2
 Clean the Data Set using Data Cleaning Process
+
 ## STEP 3
 Apply Feature generation and selection techniques to all the features of the data set
+
 ## STEP 4
 Apply data visualization techniques to identify the patterns of the data.
 
-
 # CODE
-
 ```
 NAME:YUVABHARATHI.B
+
 REGISTER NUMBER:212222230181
-# DATA PREPROCESSING BEFORE FEATURE SELECTION:
+
+#Import required libraries
+
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-df=pd.read_csv('/content/titanic_dataset.csv')
-df.head()
 
-#checking data
-df.isnull().sum()
-
-#removing unnecessary data variables
-df.drop('Cabin',axis=1,inplace=True)
-df.drop('Name',axis=1,inplace=True)
-df.drop('Ticket',axis=1,inplace=True)
-df.drop('PassengerId',axis=1,inplace=True)
-df.drop('Parch',axis=1,inplace=True)
-df.head()
-
-#cleaning data
-df['Age']=df['Age'].fillna(df['Age'].median())
-df['Embarked']=df['Embarked'].fillna(df['Embarked'].mode()[0])
-df.isnull().sum()
-
-#removing outliers 
-plt.title("Dataset with outliers")
-df.boxplot()
-plt.show()
-
-cols = ['Age','SibSp','Fare']
-Q1 = df[cols].quantile(0.25)
-Q3 = df[cols].quantile(0.75)
-IQR = Q3 - Q1
-df = df[~((df[cols] < (Q1 - 1.5 * IQR)) |(df[cols] > (Q3 + 1.5 * IQR))).any(axis=1)]
-plt.title("Dataset after removing outliers")
-df.boxplot()
-plt.show()
-
-from sklearn.preprocessing import OrdinalEncoder
-climate = ['C','S','Q']
-en= OrdinalEncoder(categories = [climate])
-df['Embarked']=en.fit_transform(df[["Embarked"]])
-df.head()
-
-from sklearn.preprocessing import OrdinalEncoder
-climate = ['male','female']
-en= OrdinalEncoder(categories = [climate])
-df['Sex']=en.fit_transform(df[["Sex"]])
-df.head()
-
-from sklearn.preprocessing import RobustScaler
-sc=RobustScaler()
-df=pd.DataFrame(sc.fit_transform(df),columns=['Survived','Pclass','Sex','Age','SibSp','Fare','Embarked'])
-df.head()
-
-import statsmodels.api as sm
-import numpy as np
-import scipy.stats as stats
-from sklearn.preprocessing import QuantileTransformer 
-qt=QuantileTransformer(output_distribution='normal',n_quantiles=692)
-
-df1=pd.DataFrame()
-df1["Survived"]=np.sqrt(df["Survived"])
-df1["Pclass"],parameters=stats.yeojohnson(df["Pclass"])
-df1["Sex"]=np.sqrt(df["Sex"])
-df1["Age"]=df["Age"]
-df1["SibSp"],parameters=stats.yeojohnson(df["SibSp"])
-df1["Fare"],parameters=stats.yeojohnson(df["Fare"])
-df1["Embarked"]=df["Embarked"]
-df1.skew()
-
-import matplotlib
 import seaborn as sns
-import statsmodels.api as sm
-%matplotlib inline
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.feature_selection import RFE
-from sklearn.linear_model import RidgeCV, LassoCV, Ridge, Lasso
 
-X = df1.drop("Survived",1) 
-y = df1["Survived"] 
+import matplotlib.pyplot as plt
 
-# FEATURE SELECTION:
-# FILTER METHOD:
-plt.figure(figsize=(7,6))
-cor = df1.corr()
-sns.heatmap(cor, annot=True, cmap=plt.cm.RdPu)
+#Load the dataset
+
+df = pd.read_csv('Superstore2.csv', encoding='unicode_escape')
+
+#Data Cleaning: Drop unnecessary columns
+
+df.drop(['Row ID', 'Order ID', 'Ship Date', 'Customer ID', 'Postal Code', 'Product ID'], axis=1, inplace=True)
+
+#Feature Generation: Extract Year and Month from Order Date
+
+df['Year'] = pd.DatetimeIndex(df['Order Date']).year
+
+df['Month'] = pd.DatetimeIndex(df['Order Date']).month_name()
+
+#1. Which Segment has Highest sales?
+
+segment_sales = df.groupby('Segment')['Sales'].sum().reset_index()
+
+plt.figure(figsize=(8,5))
+
+sns.barplot(x='Segment', y='Sales', data=segment_sales)
+
+plt.title('Segment-wise Sales')
+
 plt.show()
 
-# HIGHLY CORRELATED FEATURES WITH THE OUTPUT VARIABLE SURVIVED:
-cor_target = abs(cor["Survived"])
-relevant_features = cor_target[cor_target>0.5]
-relevant_features
+#2. Which City has Highest profit?
 
-# BACKWARD ELIMINATION:
-cols = list(X.columns)
-pmax = 1
-while (len(cols)>0):
-    p= []
-    X_1 = X[cols]
-    X_1 = sm.add_constant(X_1)
-    model = sm.OLS(y,X_1).fit()
-    p = pd.Series(model.pvalues.values[1:],index = cols)      
-    pmax = max(p)
-    feature_with_p_max = p.idxmax()
-    if(pmax>0.05):
-        cols.remove(feature_with_p_max)
-    else:
-        break
-selected_features_BE = cols
-print(selected_features_BE)
+city_profit = df.groupby('City')['Profit'].sum().reset_index().sort_values(by='Profit', ascending=False)
 
-# RFE (RECURSIVE FEATURE ELIMINATION):
-model = LinearRegression()
+plt.figure(figsize=(12,8))
 
-rfe = RFE(model,step= 4)
+sns.barplot(x='City', y='Profit', data=city_profit.head(10))
 
-X_rfe = rfe.fit_transform(X,y)  
+plt.title('Top 10 Cities by Profit')
 
-model.fit(X_rfe,y)
-print(rfe.support_)
-print(rfe.ranking_)
+plt.show()
 
-# OPTIMUM NUMBER OF FEATURES THAT HAVE HIGH ACCURACY:
-nof_list=np.arange(1,6)            
-high_score=0
-nof=0           
-score_list =[]
-for n in range(len(nof_list)):
-    X_train, X_test, y_train, y_test = train_test_split(X,y, test_size = 0.3, random_state = 0)
-    model = LinearRegression()
-    rfe = RFE(model,step=nof_list[n])
-    X_train_rfe = rfe.fit_transform(X_train,y_train)
-    X_test_rfe = rfe.transform(X_test)
-    model.fit(X_train_rfe,y_train)
-    score = model.score(X_test_rfe,y_test)
-    score_list.append(score)
-    if(score>high_score):
-        high_score = score
-        nof = nof_list[n]
-print("Optimum number of features: %d" %nof)
-print("Score with %d features: %f" % (nof, high_score))
+#3. Which ship mode is profitable?
 
-# FINAL SET OF FEATURE:
-cols = list(X.columns)
-model = LinearRegression()
-rfe = RFE(model, step=2)             
-X_rfe = rfe.fit_transform(X,y)  
-model.fit(X_rfe,y)              
-temp = pd.Series(rfe.support_,index = cols)
-selected_features_rfe = temp[temp==True].index
-print(selected_features_rfe)
+shipmode_profit = df.groupby('Ship Mode')['Profit'].sum().reset_index()
 
-# EMBEDDED METHOD:
-reg = LassoCV()
-reg.fit(X, y)
-print("Best alpha using built-in LassoCV: %f" % reg.alpha_)
-print("Best score using built-in LassoCV: %f" %reg.score(X,y))
-coef = pd.Series(reg.coef_, index = X.columns)
-print("Lasso picked " + str(sum(coef != 0)) + " variables and eliminated the other " +  str(sum(coef == 0)) + " variables")
-imp_coef = coef.sort_values()
-import matplotlib
-matplotlib.rcParams['figure.figsize'] = (5.0, 5.0)
-imp_coef.plot(kind = "barh")
-plt.title("Feature importance using Lasso Model")
+plt.figure(figsize=(8,5))
+
+sns.barplot(x='Ship Mode', y='Profit', data=shipmode_profit)
+
+plt.title('Ship Mode-wise Profit')
+
+plt.show()
+
+#4. Sales of the product based on region
+
+region_sales = df.groupby('Region')['Sales'].sum().reset_index()
+
+plt.figure(figsize=(8,5))
+
+sns.barplot(x='Region', y='Sales', data=region_sales)
+
+plt.title('Region-wise Sales')
+
+plt.show()
+
+#5. Find the relation between sales and profit
+
+plt.figure(figsize=(8,5))
+
+sns.scatterplot(x='Sales', y='Profit', data=df)
+
+plt.title('Sales vs. Profit')
+
+plt.show()
+
+#6. Find the relation between sales and profit based on the following category.
+
+#i) Segment
+
+segment_sales_profit = df.groupby('Segment')['Sales', 'Profit'].mean().reset_index()
+
+plt.figure(figsize=(8,5))
+
+sns.barplot(x='Segment', y='Sales', data=segment_sales_profit, color='blue', alpha=0.5, label='Sales')
+
+sns.barplot(x='Segment', y='Profit', data=segment_sales_profit, color='green', alpha=0.5, label='Profit')
+
+plt.title('Segment-wise Sales and Profit')
+
+plt.legend()
+
+plt.show()
+
+#ii) City
+
+city_sales_profit = df.groupby('City')['Sales', 'Profit'].mean().reset_index().sort_values(by='Profit', ascending=False).head(10)
+
+plt.figure(figsize=(12,8))
+
+sns.barplot(x='City', y='Sales', data=city_sales_profit, color='blue', alpha=0.5, label='Sales')
+
+sns.barplot(x='City', y='Profit', data=city_sales_profit, color='green', alpha=0.5, label='Profit')
+
+plt.title('Top 10 Cities by Sales and Profit')
+
+plt.legend()
+
+plt.show()
+
+#iii) States
+
+plt.figure(figsize=(8,5))
+
+sns.scatterplot(x='Sales', y='Profit', hue='State', data=df)
+
+plt.title('Sales vs. Profit based on State')
+
+plt.show()
+
+#iv) Segment and Ship Mode
+
+plt.figure(figsize=(8,5))
+
+sns.scatterplot(x='Sales', y='Profit', hue='Segment', style='Ship Mode', data=df)
+
+plt.title('Sales vs. Profit based on Segment and Ship Mode')
+
+plt.show()
+
+#v) Segment, Ship mode and Region
+
+plt.figure(figsize=(8,5))
+
+sns.scatterplot(x='Sales', y='Profit', hue='Segment', style='Ship Mode', size='Region', data=df)
+
+plt.title('Sales vs. Profit based on Segment, Ship Mode and Region')
+
 plt.show()
 ```
-# OUPUT
-## DATA PREPROCESSING BEFORE FEATURE SELECTION:
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/dd4f5d1d-b9e7-4f64-88d1-60c0e53cce12)
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/34fb979f-6022-4b61-9320-989ac2e373e8)
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/00b7235f-9bd6-4ec1-90a7-5a0cf1d1fe81)
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/5515962f-fd19-426a-98dc-0d8c5f1d2e7c)
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/f95f63be-9e32-4365-8f72-eeda59fb9648)
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/0015ef59-c38e-4947-9b03-e90f0b41fbdc)
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/2d4a77e1-0e18-4a8f-8be2-9680241b2fb2)
+# OUPUT:
 
+![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/9d322ea8-c5b3-43f1-b89d-cf6f69b79a1d)
+![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/702ae59d-ad76-49ba-83a2-689a1d94f062)
+![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/eee60dfe-008b-4cc0-9b9a-03df856b442c)
+![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/ed32e01c-e569-4a5a-815d-68f7786a9a84)
+![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/eaa69043-2388-4220-8300-3d1b5fafaa1c)
+![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/695c413a-2f0a-4b50-8bc2-ce2304ec9a0b)
+![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/33523b49-b172-45ef-a10c-1dd5e926a2dc)
+![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/ea455932-b9b8-49e3-b57a-3135a5dcb901)
+![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/457c5009-ad1e-405b-9e80-0deffdca6402)
+![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/32282299-9f36-4a29-8064-690b4d5e61f3)
 
-
-
-
-
-## FEATURE SELECTION:
-## FILTER METHOD:
-The filtering here is done using correlation matrix and it is most commonly done using Pearson correlation.
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/61d849e9-a4cc-4f45-9423-ead20471fcd6)
-
-## HIGHLY CORRELATED FEATURES WITH THE OUTPUT VARIABLE SURVIVED:
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/1f99ed2d-5b14-44aa-9857-04d8273411c6)
-
-
-## WRAPPER METHOD:
-Wrapper Method is an iterative and computationally expensive process but it is more accurate than the filter method.
-
-There are different wrapper methods such as Backward Elimination, Forward Selection, Bidirectional Elimination and RFE.
-
-## BACKWARD ELIMINATION:
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/58e8a802-8f27-4d01-939b-dc27d2b50fdc)
-
-
-## RFE (RECURSIVE FEATURE ELIMINATION):
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/c1bdf965-f3ee-4f25-9b4f-4b3fc5e6e679)
-
-
-## OPTIMUM NUMBER OF FEATURES THAT HAVE HIGH ACCURACY:
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/0f10c768-d8e6-48d8-8ad4-6285187969cb)
-
-
-## FINAL SET OF FEATURE:
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/e5f1c564-5e3c-40ae-9eae-998e3e14ba24)
-
-
-## EMBEDDED METHOD:
-Embedded methods are iterative in a sense that takes care of each iteration of the model training process and carefully extract those features which contribute the most to the training for a particular iteration. Regularization methods are the most commonly used embedded methods which penalize a feature given a coefficient threshold.
-
-![image](https://github.com/yuvabharathib/Ex-08-Data-Visualization-/assets/113497404/03c0220f-b3b7-4a66-b6d6-253f05e26119)
 
 
 # RESULT:
-Thus, the various feature selection techniques have been performed on a given dataset successfully.
-
+Hence the data visualization method for the given dataset applied successfully.
 
